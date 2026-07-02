@@ -12420,14 +12420,28 @@ window.INITIAL_PRODUCTS = [
     }
 
     const headers = unique(rows.flatMap((item) => Object.keys(item.raw)));
-    const csv = [headers, ...rows.map((item) => headers.map((header) => item.raw[header] || ""))]
-      .map((row) => row.map(escapeCsvCell).join(","))
-      .join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const tableRows = [headers, ...rows.map((item) => headers.map((header) => item.raw[header] || ""))]
+      .map((row) => `<tr>${row.map((cell) => `<td class="text-cell">${escapeHtml(cell)}</td>`).join("")}</tr>`)
+      .join("");
+    const workbook = `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    table { border-collapse: collapse; }
+    td { border: 1px solid #d9dde3; padding: 4px 8px; }
+    .text-cell { mso-number-format:"\\@"; }
+  </style>
+</head>
+<body>
+  <table>${tableRows}</table>
+</body>
+</html>`;
+    const blob = new Blob(["\uFEFF" + workbook], { type: "application/vnd.ms-excel;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `圈品池导出_${formatFileDate()}.csv`;
+    link.download = `圈品池导出_${formatFileDate()}.xls`;
     document.body.append(link);
     link.click();
     link.remove();
@@ -12435,9 +12449,13 @@ window.INITIAL_PRODUCTS = [
     showNotice(`已导出 ${rows.length} 个商品。`);
   }
 
-  function escapeCsvCell(value) {
+  function escapeHtml(value) {
     const text = String(value == null ? "" : value);
-    return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   function showNotice(message, isError) {
