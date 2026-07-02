@@ -11988,15 +11988,14 @@ window.INITIAL_PRODUCTS = [
 </script>
   <script>
 (function () {
-  const STORAGE_KEY = "plus_size_product_selection_data_v3";
-  const SOURCE_KEY = "plus_size_product_selection_source_v3";
+  const DATA_URL = "data.csv";
   const POOL_KEY = "plus_size_product_selection_pool_v3";
   const DETAIL_KEYS = ["商品详情页URL", "商品详情链接", "详情链接", "商品链接", "链接", "Product URL", "product_url", "url"];
   const IMAGE_KEYS = ["首图 url", "首图URL", "图片URL", "商品图片", "图片链接", "Image URL", "image_url", "image"];
 
   const state = {
     products: loadProducts(),
-    source: localStorage.getItem(SOURCE_KEY) || "初始数据",
+    source: "内置数据",
     activeView: "products",
     selectedIds: loadIdSet(POOL_KEY),
     exportIds: new Set(),
@@ -12070,28 +12069,29 @@ window.INITIAL_PRODUCTS = [
     render();
   });
   els.resetButton.addEventListener("click", () => {
-      state.products = normalizeRows(window.INITIAL_PRODUCTS || []);
-      state.source = "初始数据";
-      state.tag = "全部标签";
-      state.selectedIds = new Set();
-      state.exportIds = new Set();
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.setItem(SOURCE_KEY, state.source);
-      savePool();
-      showNotice("已恢复初始商品明细。");
-      render();
+      loadRemoteProducts(true);
   });
 
   render();
+  loadRemoteProducts();
 
   function loadProducts() {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) return normalizeRows(JSON.parse(stored));
-    } catch (error) {
-      console.warn("Unable to load stored products", error);
-    }
     return normalizeRows(window.INITIAL_PRODUCTS || []);
+  }
+
+  async function loadRemoteProducts(showSuccess) {
+    try {
+      const response = await fetch(`${DATA_URL}?v=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const rows = rowsToObjects(parseCsv(await response.text()));
+      const products = normalizeRows(rows);
+      if (!products.length) throw new Error("data.csv 中没有可识别的商品数据。");
+      setProducts(products, `data.csv · ${formatNow()}`);
+      if (showSuccess) showNotice(`已重新加载 ${products.length} 条线上商品明细。`);
+    } catch (error) {
+      console.warn("Unable to load remote data.csv", error);
+      if (showSuccess) showNotice("读取 data.csv 失败，已保留当前页面数据。", true);
+    }
   }
 
   function loadIdSet(key) {
@@ -12114,21 +12114,9 @@ window.INITIAL_PRODUCTS = [
         throw new Error("文件中没有可识别的商品数据。");
       }
 
-      state.products = normalized;
-      state.country = "全部国家";
-      state.tag = "全部标签";
-      state.category = "全部类目";
-      state.query = "";
-      state.selectedIds = new Set();
-      state.exportIds = new Set();
-      state.activeView = "products";
-      state.source = `${file.name} · ${formatNow()}`;
+      setProducts(normalized, `${file.name} · 本机临时预览 ${formatNow()}`);
       els.searchInput.value = "";
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-      localStorage.setItem(SOURCE_KEY, state.source);
-      savePool();
-      showNotice(`已导入 ${normalized.length} 条商品，新数据已完整覆盖旧数据。`);
-      render();
+      showNotice(`已导入 ${normalized.length} 条商品。此导入仅为本机临时预览，不会同步给机构。`);
     } catch (error) {
       showNotice(error.message || "导入失败，请检查文件格式。", true);
     } finally {
@@ -12263,6 +12251,25 @@ window.INITIAL_PRODUCTS = [
     return "#";
   }
 
+  function setProducts(products, source) {
+    state.products = products;
+    state.source = source;
+    state.country = "全部国家";
+    state.tag = "全部标签";
+    state.category = "全部类目";
+    state.query = "";
+    state.activeView = "products";
+    pruneSelection();
+    render();
+  }
+
+  function pruneSelection() {
+    const validIds = new Set(state.products.map((item) => item.id));
+    state.selectedIds = new Set([...state.selectedIds].filter((id) => validIds.has(id)));
+    state.exportIds = new Set([...state.exportIds].filter((id) => validIds.has(id)));
+    savePool();
+  }
+
   function render() {
     updateFilters();
     updateViewControls();
@@ -12277,7 +12284,7 @@ window.INITIAL_PRODUCTS = [
     els.selectionPoolTab.classList.toggle("is-active", inSelection);
     els.productToolbar.hidden = inSelection;
     els.selectionToolbar.hidden = !inSelection;
-    els.poolCount.textContent = state.selectedIds.size.toLocaleString("zh-CN");
+    els.poolCount.textContent = getPoolProducts().length.toLocaleString("zh-CN");
     els.exportButton.disabled = !(inSelection && state.exportIds.size > 0);
 
     const poolProducts = getPoolProducts();
