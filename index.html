@@ -710,19 +710,15 @@ select:focus {
       </div>
       <div class="card-body">
         <a class="spu product-title" target="_blank" rel="noreferrer"></a>
-        <p class="store-line"></p>
-        <p class="meta product-meta"></p>
         <dl class="metric-list">
           <div><dt>内容场占比</dt><dd class="content-share"></dd></div>
           <div><dt>直播占比</dt><dd class="live-share"></dd></div>
           <div><dt>US销量占比</dt><dd class="us-share"></dd></div>
           <div><dt>UK销量占比</dt><dd class="uk-share"></dd></div>
-          <div><dt>可用库存</dt><dd class="stock"></dd></div>
           <div><dt>销量排名</dt><dd class="sales-rank"></dd></div>
           <div><dt>是否在联盟</dt><dd class="affiliate"></dd></div>
           <div><dt>大码参考价</dt><dd class="price"></dd></div>
           <div><dt>上架时间</dt><dd class="date"></dd></div>
-          <div><dt>shop_name</dt><dd class="shop-name"></dd></div>
         </dl>
       </div>
     </article>
@@ -1357,21 +1353,14 @@ window.INITIAL_PRODUCTS = [{"爆品标签": "爆品", "上架时间": "2026/1/12
       });
       spu.textContent = item.spu || "查看详情";
       spu.href = item.detailUrl;
-      node.querySelector(".store-line").textContent = item.store || "店铺未提供";
-      node.querySelector(".product-meta").textContent = [
-        [item.thirdCategory, item.leafCategory].filter(Boolean).join(" / "),
-        item.country
-      ].filter(Boolean).join("  |  ") || "商品信息未提供";
       node.querySelector(".content-share").textContent = formatValue(item.contentShare);
       node.querySelector(".live-share").textContent = formatValue(item.liveShare);
       node.querySelector(".us-share").textContent = formatValue(item.usShare);
       node.querySelector(".uk-share").textContent = formatValue(item.ukShare);
-      node.querySelector(".stock").textContent = formatValue(item.stock);
       node.querySelector(".sales-rank").textContent = item.salesRank ? `#${item.salesRank}` : "未提供";
       node.querySelector(".affiliate").textContent = formatValue(item.affiliate);
       node.querySelector(".price").textContent = formatPrice(item.price);
       node.querySelector(".date").textContent = formatValue(item.listedAt);
-      node.querySelector(".shop-name").textContent = formatValue(item.store);
       fragment.append(node);
     });
 
