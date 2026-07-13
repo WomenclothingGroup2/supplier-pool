@@ -201,7 +201,7 @@ button:disabled:hover {
 
 .toolbar {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) repeat(4, minmax(126px, 160px)) auto;
+  grid-template-columns: minmax(240px, 1fr) repeat(3, minmax(126px, 180px)) auto;
   gap: 12px;
   align-items: center;
   margin-bottom: 16px;
@@ -655,10 +655,9 @@ select:focus {
         <span aria-hidden="true">⌕</span>
         <input id="searchInput" type="search" placeholder="搜索 SPU、店铺或类目">
       </div>
-      <select id="countryFilter" aria-label="国家筛选"></select>
       <select id="tagFilter" aria-label="标签筛选"></select>
-      <select id="secondCategoryFilter" aria-label="二级类目筛选"></select>
       <select id="categoryFilter" aria-label="三级类目筛选"></select>
+      <select id="leafCategoryFilter" aria-label="叶子类目筛选"></select>
       <button id="resetButton" type="button">刷新 data.csv</button>
     </section>
 
@@ -982,10 +981,9 @@ window.INITIAL_PRODUCTS = [{"爆品标签": "爆品", "上架时间": "2026/1/12
     selectedIds: loadIdSet(POOL_KEY),
     exportIds: new Set(),
     query: "",
-    country: "全部国家",
     tag: "全部标签",
-    secondCategory: "全部二级类目",
-    category: "全部三级类目"
+    category: "全部三级类目",
+    leafCategory: "全部叶子类目"
   };
 
   const els = {
@@ -999,10 +997,9 @@ window.INITIAL_PRODUCTS = [{"爆品标签": "爆品", "上架时间": "2026/1/12
     selectAllInput: document.getElementById("selectAllInput"),
     clearPoolButton: document.getElementById("clearPoolButton"),
     searchInput: document.getElementById("searchInput"),
-    countryFilter: document.getElementById("countryFilter"),
     tagFilter: document.getElementById("tagFilter"),
-    secondCategoryFilter: document.getElementById("secondCategoryFilter"),
     categoryFilter: document.getElementById("categoryFilter"),
+    leafCategoryFilter: document.getElementById("leafCategoryFilter"),
     resetButton: document.getElementById("resetButton"),
     productGrid: document.getElementById("productGrid"),
     emptyState: document.getElementById("emptyState"),
@@ -1040,20 +1037,16 @@ window.INITIAL_PRODUCTS = [{"爆品标签": "爆品", "上架时间": "2026/1/12
     state.query = event.target.value.trim().toLowerCase();
     render();
   });
-  els.countryFilter.addEventListener("change", (event) => {
-    state.country = event.target.value;
-    render();
-  });
   els.tagFilter.addEventListener("change", (event) => {
     state.tag = event.target.value;
     render();
   });
-  els.secondCategoryFilter.addEventListener("change", (event) => {
-    state.secondCategory = event.target.value;
-    render();
-  });
   els.categoryFilter.addEventListener("change", (event) => {
     state.category = event.target.value;
+    render();
+  });
+  els.leafCategoryFilter.addEventListener("change", (event) => {
+    state.leafCategory = event.target.value;
     render();
   });
   els.resetButton.addEventListener("click", () => {
@@ -1247,10 +1240,9 @@ window.INITIAL_PRODUCTS = [{"爆品标签": "爆品", "上架时间": "2026/1/12
   function setProducts(products, source) {
     state.products = products;
     state.source = source;
-    state.country = "全部国家";
     state.tag = "全部标签";
-    state.secondCategory = "全部二级类目";
     state.category = "全部三级类目";
+    state.leafCategory = "全部叶子类目";
     state.query = "";
     state.activeView = "products";
     pruneSelection();
@@ -1287,14 +1279,12 @@ window.INITIAL_PRODUCTS = [{"爆品标签": "爆品", "上架时间": "2026/1/12
   }
 
   function updateFilters() {
-    fillSelect(els.countryFilter, "全部国家", unique(state.products.map((item) => item.country)));
     fillSelect(els.tagFilter, "全部标签", unique(state.products.map((item) => item.tag)));
-    fillSelect(els.secondCategoryFilter, "全部二级类目", unique(state.products.map((item) => item.secondCategory)));
     fillSelect(els.categoryFilter, "全部三级类目", unique(state.products.map((item) => item.thirdCategory)));
-    els.countryFilter.value = state.country;
+    fillSelect(els.leafCategoryFilter, "全部叶子类目", unique(state.products.map((item) => item.leafCategory)));
     els.tagFilter.value = state.tag;
-    els.secondCategoryFilter.value = state.secondCategory;
     els.categoryFilter.value = state.category;
+    els.leafCategoryFilter.value = state.leafCategory;
   }
 
   function fillSelect(select, allLabel, values) {
@@ -1311,12 +1301,11 @@ window.INITIAL_PRODUCTS = [{"爆品标签": "爆品", "上架时间": "2026/1/12
 
   function getFilteredProducts() {
     return state.products.filter((item) => {
-      const matchesCountry = state.country === "全部国家" || item.country === state.country;
       const matchesTag = state.tag === "全部标签" || item.tag === state.tag;
-      const matchesSecondCategory = state.secondCategory === "全部二级类目" || item.secondCategory === state.secondCategory;
       const matchesCategory = state.category === "全部三级类目" || item.thirdCategory === state.category;
-      const haystack = [item.spu, item.store, item.secondCategory, item.thirdCategory, item.leafCategory, item.country, item.tag].join(" ").toLowerCase();
-      return matchesCountry && matchesTag && matchesSecondCategory && matchesCategory && haystack.includes(state.query);
+      const matchesLeafCategory = state.leafCategory === "全部叶子类目" || item.leafCategory === state.leafCategory;
+      const haystack = [item.spu, item.store, item.thirdCategory, item.leafCategory, item.tag].join(" ").toLowerCase();
+      return matchesTag && matchesCategory && matchesLeafCategory && haystack.includes(state.query);
     });
   }
 
